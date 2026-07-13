@@ -87,7 +87,7 @@ def subprocess_options():
 
 
 def convert_audio_to_analysis_wav(input_path):
-    """音声ファイルをmono・16-bit PCM WAVへ変換する。"""
+    """Convert an audio file to mono 16-bit PCM WAV."""
     input_path = Path(input_path)
     ffmpeg_path = get_ffmpeg_path()
 
@@ -109,13 +109,13 @@ def convert_audio_to_analysis_wav(input_path):
 
     if result.returncode != 0:
         raise RuntimeError(
-            "ffmpegによるWAV変換に失敗しました。\n\n"
-            f"入力ファイル: {input_path}\n\n"
+            "Failed to convert the audio file to WAV using FFmpeg.\n\n"
+            f"Input file: {input_path}\n\n"
             f"ffmpeg error:\n{result.stderr}"
         )
 
     if not output_wav.exists():
-        raise FileNotFoundError("変換後WAVファイルが作成されませんでした。")
+        raise FileNotFoundError("The converted WAV file was not created.")
 
     info = sf.info(str(output_wav))
 
@@ -135,7 +135,7 @@ def convert_audio_to_analysis_wav(input_path):
 
 
 def find_opensmile_components(root):
-    """指定フォルダ以下から公式openSMILE実行ファイルとeGeMAPSv02設定を探す。"""
+    """Search recursively for the official openSMILE executable and eGeMAPSv02 configuration."""
     root = Path(root).resolve()
     if not root.exists():
         return None
@@ -203,7 +203,7 @@ def detect_opensmile_version(exe_path):
 def read_opensmile_csv(path):
     path = Path(path)
     if not path.exists() or path.stat().st_size == 0:
-        raise FileNotFoundError(f"openSMILE出力CSVが作成されませんでした: {path}")
+        raise FileNotFoundError(f"The openSMILE output CSV was not created: {path}")
 
     attempts = [
         {"sep": None, "engine": "python"},
@@ -221,7 +221,7 @@ def read_opensmile_csv(path):
             continue
 
     if best is None or best.empty:
-        raise ValueError(f"openSMILE出力CSVを読み取れませんでした: {path}")
+        raise ValueError(f"Could not read the openSMILE output CSV: {path}")
 
     best.columns = [str(c).strip().strip('"') for c in best.columns]
     return best
@@ -232,9 +232,9 @@ def run_opensmile_command(exe_path, config_path, args):
     config_path = Path(config_path).resolve()
 
     if not exe_path.exists():
-        raise FileNotFoundError(f"SMILExtractが見つかりません: {exe_path}")
+        raise FileNotFoundError(f"SMILExtract was not found: {exe_path}")
     if not config_path.exists():
-        raise FileNotFoundError(f"eGeMAPSv02.confが見つかりません: {config_path}")
+        raise FileNotFoundError(f"eGeMAPSv02.conf was not found: {config_path}")
 
     command = [
         str(exe_path),
@@ -251,11 +251,11 @@ def run_opensmile_command(exe_path, config_path, args):
 
     if result.returncode != 0:
         raise RuntimeError(
-            "公式openSMILEの実行に失敗しました。\n\n"
-            f"実行ファイル: {exe_path}\n"
-            f"設定ファイル: {config_path}\n\n"
-            f"標準出力:\n{result.stdout}\n\n"
-            f"エラー出力:\n{result.stderr}"
+            "Failed to run the official openSMILE executable.\n\n"
+            f"Executable: {exe_path}\n"
+            f"Configuration file: {config_path}\n\n"
+            f"Standard output:\n{result.stdout}\n\n"
+            f"Error output:\n{result.stderr}"
         )
 
 
@@ -353,7 +353,7 @@ def compute_egemaps_loudness_lld(wav_path, total_duration, exe_path, config_path
 
     loudness_cols = [c for c in lld.columns if "loudness" in str(c).lower()]
     if not loudness_cols:
-        raise ValueError("eGeMAPSv02 LLD出力内にloudness列が見つかりませんでした。")
+        raise ValueError("No loudness column was found in the eGeMAPSv02 LLD output.")
 
     loudness_col = loudness_cols[0]
     values = pd.to_numeric(lld[loudness_col], errors="coerce").to_numpy(dtype=float)
@@ -372,7 +372,7 @@ def compute_egemaps_loudness_lld(wav_path, total_duration, exe_path, config_path
 
     valid = np.isfinite(values) & np.isfinite(times)
     if valid.sum() < 5:
-        raise ValueError("有効なloudness値が少なすぎます。")
+        raise ValueError("Too few valid loudness values were available.")
 
     values = values[valid]
     times = times[valid]
@@ -479,13 +479,13 @@ def estimate_segment_from_reference_silence(
     config_path,
 ):
     if not (0 <= initial_silence_start < initial_silence_end <= total_duration):
-        raise ValueError("発話前無音基準区間の指定が不正です。")
+        raise ValueError("The pre-speech reference silence interval is invalid.")
 
     if not (0 <= final_silence_start < final_silence_end <= total_duration):
-        raise ValueError("発話後無音基準区間の指定が不正です。")
+        raise ValueError("The post-speech reference silence interval is invalid.")
 
     if initial_silence_end >= final_silence_start:
-        raise ValueError("発話前無音基準区間と発話後無音基準区間が重なっています。")
+        raise ValueError("The pre-speech and post-speech reference silence intervals overlap.")
 
     loudness_info = compute_egemaps_loudness_lld(
         wav_path,
@@ -505,7 +505,7 @@ def estimate_segment_from_reference_silence(
 
     noise_values = values_smooth[noise_mask]
     if len(noise_values) < 3:
-        raise ValueError("指定された無音基準区間内のloudnessフレームが少なすぎます。")
+        raise ValueError("Too few loudness frames were found within the specified reference silence intervals.")
 
     noise_p95 = np.percentile(noise_values, 95)
     global_p95 = np.percentile(values_smooth, 95)
@@ -521,8 +521,8 @@ def estimate_segment_from_reference_silence(
 
     if first_idx is None or last_idx is None or last_idx <= first_idx:
         raise ValueError(
-            "発話開始・終了の自動推定に失敗しました。"
-            "発話前後の無音基準区間を見直してください。"
+            "Automatic estimation of speech onset and offset failed. "
+            "Please review the pre-speech and post-speech reference silence intervals."
         )
 
     speech_onset_candidate_sec = max(0.0, float(times[first_idx]) - frame_step / 2)
@@ -567,9 +567,9 @@ def estimate_segment_from_reference_silence(
         "pause_count": pause_metrics["pause_count"],
         "mean_pause_duration_sec": pause_metrics["mean_pause_duration_sec"],
         "message": (
-            "指定された発話前・発話後の無音基準区間における"
-            "eGeMAPSv02 LLD loudnessの95パーセンタイル値を閾値として、"
-            "発話開始時刻と発話終了時刻を自動推定しました。"
+            "The speech onset and offset were automatically estimated using "
+            "the 95th percentile of eGeMAPSv02 LLD loudness values in the specified "
+            "pre-speech and post-speech reference silence intervals as the threshold."
         ),
     }
 
@@ -626,67 +626,67 @@ class App(QWidget):
         layout.addWidget(title)
 
         opensmile_layout = QHBoxLayout()
-        self.opensmile_status_label = QLabel("公式openSMILE：未設定")
-        self.opensmile_button = QPushButton("公式openSMILEフォルダを選択")
+        self.opensmile_status_label = QLabel("Official openSMILE: Not configured")
+        self.opensmile_button = QPushButton("Select official openSMILE folder")
         self.opensmile_button.clicked.connect(self.select_opensmile_folder)
         opensmile_layout.addWidget(self.opensmile_status_label, 1)
         opensmile_layout.addWidget(self.opensmile_button)
         layout.addLayout(opensmile_layout)
 
         self.id_input = QLineEdit()
-        self.id_input.setPlaceholderText("例：P001")
+        self.id_input.setPlaceholderText("Example: P001")
         layout.addWidget(QLabel("Participant ID"))
         layout.addWidget(self.id_input)
 
-        self.file_label = QLabel("音声ファイル未選択")
+        self.file_label = QLabel("No audio file selected")
         self.file_button = QPushButton(
-            "音声ファイルを選択（wav / m4a / mp3 / mp4 / aac / flac）"
+            "Select audio file (wav / m4a / mp3 / mp4 / aac / flac)"
         )
         self.file_button.clicked.connect(self.select_file)
-        layout.addWidget(QLabel("音声ファイル"))
+        layout.addWidget(QLabel("Audio file"))
         layout.addWidget(self.file_label)
         layout.addWidget(self.file_button)
 
-        self.audio_info_label = QLabel("音声情報：未読み込み")
+        self.audio_info_label = QLabel("Audio information: Not loaded")
         layout.addWidget(self.audio_info_label)
 
         self.figure = Figure(figsize=(9, 4.5))
         self.canvas = FigureCanvas(self.figure)
         layout.addWidget(QLabel(
-            "上段：波形 / 下段：eGeMAPSv02 LLD loudness と閾値ライン"
+            "Top: Waveform / Bottom: eGeMAPSv02 LLD loudness and threshold"
         ))
         layout.addWidget(self.canvas)
 
-        layout.addWidget(QLabel("発話前無音基準区間：初期値 1.0〜4.0秒"))
+        layout.addWidget(QLabel("Pre-speech reference silence interval: default 1.0–4.0 s"))
         initial_noise_layout = QHBoxLayout()
         self.initial_noise_start_input = QLineEdit()
         self.initial_noise_end_input = QLineEdit()
-        initial_noise_layout.addWidget(QLabel("開始秒"))
+        initial_noise_layout.addWidget(QLabel("Start (s)"))
         initial_noise_layout.addWidget(self.initial_noise_start_input)
-        initial_noise_layout.addWidget(QLabel("終了秒"))
+        initial_noise_layout.addWidget(QLabel("End (s)"))
         initial_noise_layout.addWidget(self.initial_noise_end_input)
         layout.addLayout(initial_noise_layout)
 
         layout.addWidget(QLabel(
-            "発話後無音基準区間：初期値 音声長−4.0秒〜音声長−1.0秒"
+            "Post-speech reference silence interval: default duration−4.0 s to duration−1.0 s"
         ))
         final_noise_layout = QHBoxLayout()
         self.final_noise_start_input = QLineEdit()
         self.final_noise_end_input = QLineEdit()
-        final_noise_layout.addWidget(QLabel("開始秒"))
+        final_noise_layout.addWidget(QLabel("Start (s)"))
         final_noise_layout.addWidget(self.final_noise_start_input)
-        final_noise_layout.addWidget(QLabel("終了秒"))
+        final_noise_layout.addWidget(QLabel("End (s)"))
         final_noise_layout.addWidget(self.final_noise_end_input)
         layout.addLayout(final_noise_layout)
 
         estimate_layout = QHBoxLayout()
-        self.reestimate_button = QPushButton("基準無音区間から再推定")
+        self.reestimate_button = QPushButton("Re-estimate from reference silence intervals")
         self.reestimate_button.clicked.connect(
             lambda: self.estimate_from_reference_intervals(show_message=True)
         )
         estimate_layout.addWidget(self.reestimate_button)
 
-        self.reset_reference_button = QPushButton("基準無音区間を初期値に戻す")
+        self.reset_reference_button = QPushButton("Reset reference silence intervals")
         self.reset_reference_button.clicked.connect(self.reset_reference_intervals)
         estimate_layout.addWidget(self.reset_reference_button)
         layout.addLayout(estimate_layout)
@@ -696,31 +696,31 @@ class App(QWidget):
         self.end_input = QLineEdit()
         self.end_input.setReadOnly(True)
 
-        layout.addWidget(QLabel("自動決定された解析開始秒"))
+        layout.addWidget(QLabel("Automatically determined analysis start (s)"))
         layout.addWidget(self.start_input)
-        layout.addWidget(QLabel("自動決定された解析終了秒"))
+        layout.addWidget(QLabel("Automatically determined analysis end (s)"))
         layout.addWidget(self.end_input)
 
-        self.silence_info_label = QLabel("無音・閾値情報：未実行")
+        self.silence_info_label = QLabel("Silence and threshold information: Not calculated")
         layout.addWidget(self.silence_info_label)
 
-        self.additional_info_label = QLabel("補助指標：未実行")
+        self.additional_info_label = QLabel("Speech behavior measures: Not calculated")
         layout.addWidget(self.additional_info_label)
 
-        self.analyze_button = QPushButton("解析開始")
+        self.analyze_button = QPushButton("Start analysis")
         self.analyze_button.clicked.connect(self.analyze)
         layout.addWidget(self.analyze_button)
 
-        self.status_label = QLabel("状態：待機中")
+        self.status_label = QLabel("Status: Ready")
         layout.addWidget(self.status_label)
 
         self.table = QTableWidget()
         self.table.setColumnCount(2)
         self.table.setHorizontalHeaderLabels(["Feature", "Value"])
-        layout.addWidget(QLabel("主要特徴量"))
+        layout.addWidget(QLabel("Main features"))
         layout.addWidget(self.table)
 
-        self.save_button = QPushButton("全解析結果をCSV保存")
+        self.save_button = QPushButton("Save all analysis results as CSV")
         self.save_button.clicked.connect(self.save_csv)
         layout.addWidget(self.save_button)
 
@@ -742,7 +742,7 @@ class App(QWidget):
                 return
 
         self.opensmile_status_label.setText(
-            "公式openSMILE：未設定（フォルダを選択してください）"
+            "Official openSMILE: Not configured (please select a folder)"
         )
 
     def apply_opensmile_components(self, components, save=True):
@@ -752,7 +752,7 @@ class App(QWidget):
         self.opensmile_version = detect_opensmile_version(self.opensmile_exe)
 
         self.opensmile_status_label.setText(
-            f"公式openSMILE：設定済み / version {self.opensmile_version} / "
+            f"Official openSMILE: Configured / version {self.opensmile_version} / "
             f"{self.opensmile_exe}"
         )
 
@@ -764,7 +764,7 @@ class App(QWidget):
     def select_opensmile_folder(self):
         folder = QFileDialog.getExistingDirectory(
             self,
-            "公式openSMILEを展開したフォルダを選択",
+            "Select the folder containing the extracted official openSMILE package",
             str(get_app_dir()),
         )
         if not folder:
@@ -774,33 +774,33 @@ class App(QWidget):
         if not components:
             QMessageBox.critical(
                 self,
-                "openSMILEが見つかりません",
-                "選択したフォルダ以下に、SMILExtract.exeと"
-                "eGeMAPSv02.confの両方が見つかりませんでした。\n\n"
-                "公式openSMILEのZIPを展開した最上位フォルダを選択してください。",
+                "openSMILE not found",
+                "Neither SMILExtract.exe nor both required files were found under the selected folder. "
+                "Both SMILExtract.exe and eGeMAPSv02.conf are required.\n\n"
+                "Select the top-level folder of the extracted official openSMILE ZIP package.",
             )
             return
 
         self.apply_opensmile_components(components, save=True)
         QMessageBox.information(
             self,
-            "設定完了",
-            "公式openSMILEを設定しました。\n\n"
+            "Configuration complete",
+            "Official openSMILE has been configured.\n\n"
             f"SMILExtract:\n{self.opensmile_exe}\n\n"
             f"eGeMAPSv02.conf:\n{self.opensmile_config}\n\n"
-            f"検出バージョン: {self.opensmile_version}",
+            f"Detected version: {self.opensmile_version}",
         )
 
     def ensure_opensmile_ready(self):
         if not self.opensmile_exe or not Path(self.opensmile_exe).exists():
             raise ValueError(
-                "公式openSMILEが設定されていません。"
-                "「公式openSMILEフォルダを選択」から設定してください。"
+                "Official openSMILE is not configured. "
+                "Use \"Select official openSMILE folder\" to configure it."
             )
         if not self.opensmile_config or not Path(self.opensmile_config).exists():
             raise ValueError(
-                "eGeMAPSv02.confが見つかりません。"
-                "公式openSMILEフォルダを再設定してください。"
+                "eGeMAPSv02.conf was not found. "
+                "Please configure the official openSMILE folder again."
             )
 
     def draw_empty_plot(self):
@@ -814,7 +814,7 @@ class App(QWidget):
     def select_file(self):
         file_path, _ = QFileDialog.getOpenFileName(
             self,
-            "音声ファイルを選択",
+            "Select audio file",
             "",
             "Audio Files (*.wav *.m4a *.mp3 *.mp4 *.aac *.flac);;All Files (*.*)",
         )
@@ -827,7 +827,7 @@ class App(QWidget):
 
             try:
                 self.ensure_opensmile_ready()
-                self.status_label.setText("状態：音声ファイルをWAVに変換中...")
+                self.status_label.setText("Status: Converting audio file to WAV...")
                 QApplication.processEvents()
 
                 self.convert_info = convert_audio_to_analysis_wav(file_path)
@@ -837,17 +837,17 @@ class App(QWidget):
                 self.total_duration = len(self.signal) / self.sampling_rate
 
                 self.audio_info_label.setText(
-                    f"音声情報：{self.total_duration:.3f} 秒 / "
+                    f"Audio information: {self.total_duration:.3f} s / "
                     f"{self.sampling_rate} Hz / "
-                    f"入力形式 {self.convert_info.get('input_format', '')} → WAV変換済み"
+                    f"Input format {self.convert_info.get('input_format', '')} → converted to WAV"
                 )
 
                 if self.total_duration <= 8.0:
                     QMessageBox.warning(
                         self,
-                        "注意",
-                        "音声長が8秒以下です。初期基準区間 1.0〜4.0秒 および "
-                        "末尾−4.0〜−1.0秒 が重なる可能性があります。",
+                        "Warning",
+                        "The audio duration is 8 seconds or shorter. The default reference intervals 1.0–4.0 s and "
+                        "duration−4.0 to duration−1.0 s may overlap.",
                     )
 
                 initial_start = 1.0
@@ -865,22 +865,22 @@ class App(QWidget):
 
                 self.start_input.setText("")
                 self.end_input.setText("")
-                self.silence_info_label.setText("無音・閾値情報：未実行")
-                self.additional_info_label.setText("補助指標：未実行")
+                self.silence_info_label.setText("Silence and threshold information: Not calculated")
+                self.additional_info_label.setText("Speech behavior measures: Not calculated")
 
-                self.status_label.setText("状態：WAV変換完了。自動推定中...")
+                self.status_label.setText("Status: WAV conversion completed. Estimating the analysis interval...")
                 QApplication.processEvents()
                 self.estimate_from_reference_intervals(show_message=False)
 
             except Exception as e:
-                self.audio_info_label.setText("音声情報：読み込みまたは変換失敗")
-                self.status_label.setText("状態：音声読み込みまたは推定エラー")
-                QMessageBox.critical(self, "エラー", str(e))
+                self.audio_info_label.setText("Audio information: Loading or conversion failed")
+                self.status_label.setText("Status: Audio loading or estimation error")
+                QMessageBox.critical(self, "Error", str(e))
                 self.plot_all()
 
     def load_audio_mono(self):
         if not self.analysis_wav_path:
-            raise ValueError("解析用WAVファイルがありません。")
+            raise ValueError("No analysis-ready WAV file is available.")
 
         signal, sampling_rate = sf.read(self.analysis_wav_path)
         if signal.ndim == 2:
@@ -889,7 +889,7 @@ class App(QWidget):
 
     def get_reference_intervals_from_inputs(self):
         if self.total_duration is None:
-            raise ValueError("音声ファイルを選択してください。")
+            raise ValueError("Please select an audio file.")
 
         initial_start = float(self.initial_noise_start_input.text())
         initial_end = float(self.initial_noise_end_input.text())
@@ -897,11 +897,11 @@ class App(QWidget):
         final_end = float(self.final_noise_end_input.text())
 
         if not (0 <= initial_start < initial_end <= self.total_duration):
-            raise ValueError("発話前無音基準区間の指定が不正です。")
+            raise ValueError("The pre-speech reference silence interval is invalid.")
         if not (0 <= final_start < final_end <= self.total_duration):
-            raise ValueError("発話後無音基準区間の指定が不正です。")
+            raise ValueError("The post-speech reference silence interval is invalid.")
         if initial_end >= final_start:
-            raise ValueError("発話前無音基準区間と発話後無音基準区間が重なっています。")
+            raise ValueError("The pre-speech and post-speech reference silence intervals overlap.")
 
         return initial_start, initial_end, final_start, final_end
 
@@ -924,19 +924,19 @@ class App(QWidget):
 
     def get_auto_segment_from_inputs(self):
         if self.total_duration is None:
-            raise ValueError("音声ファイルを選択してください。")
+            raise ValueError("Please select an audio file.")
 
         start_sec = float(self.start_input.text())
         end_sec = float(self.end_input.text())
 
         if start_sec < 0:
-            raise ValueError("解析開始秒は0以上にしてください。")
+            raise ValueError("The analysis start time must be 0 or greater.")
         if end_sec <= start_sec:
-            raise ValueError("解析終了秒は開始秒より大きくしてください。")
+            raise ValueError("The analysis end time must be greater than the start time.")
         if end_sec > self.total_duration:
             raise ValueError(
-                f"解析終了秒が音声長を超えています。"
-                f"音声長は {self.total_duration:.3f} 秒です。"
+                f"The analysis end time exceeds the audio duration. "
+                f"The audio duration is {self.total_duration:.3f} s."
             )
         return start_sec, end_sec
 
@@ -1053,7 +1053,7 @@ class App(QWidget):
 
     def reset_reference_intervals(self):
         if self.default_initial_noise is None or self.default_final_noise is None:
-            QMessageBox.warning(self, "注意", "音声ファイルを選択してください。")
+            QMessageBox.warning(self, "Warning", "Please select an audio file.")
             return
 
         self.initial_noise_start_input.setText(
@@ -1074,7 +1074,7 @@ class App(QWidget):
         try:
             self.ensure_opensmile_ready()
             if self.signal is None or self.sampling_rate is None:
-                raise ValueError("音声ファイルを選択してください。")
+                raise ValueError("Please select an audio file.")
 
             initial_start, initial_end, final_start, final_end = (
                 self.get_reference_intervals_from_inputs()
@@ -1084,16 +1084,16 @@ class App(QWidget):
             if quality["any_too_short"] and show_message:
                 QMessageBox.warning(
                     self,
-                    "基準無音区間が短いです",
-                    f"発話前基準無音区間：{quality['initial_duration']:.3f} 秒\n"
-                    f"発話後基準無音区間：{quality['final_duration']:.3f} 秒\n\n"
-                    f"いずれかが {MIN_REFERENCE_SILENCE_SEC:.1f} 秒未満です。"
-                    "推定は続行しますが、可能であれば1秒以上、"
-                    "できれば約3秒の静かな区間を指定してください。",
+                    "Reference silence interval is too short",
+                    f"Pre-speech reference silence interval: {quality['initial_duration']:.3f} s\n"
+                    f"Post-speech reference silence interval: {quality['final_duration']:.3f} s\n\n"
+                    f"At least one interval is shorter than {MIN_REFERENCE_SILENCE_SEC:.1f} s. "
+                    "Estimation will continue, but use at least 1 second, "
+                    "and preferably about 3 seconds, of quiet reference silence.",
                 )
 
             self.status_label.setText(
-                "状態：公式openSMILEでLLDを抽出し、解析区間を推定中..."
+                "Status: Extracting LLDs with official openSMILE and estimating the analysis interval..."
             )
             QApplication.processEvents()
 
@@ -1114,61 +1114,61 @@ class App(QWidget):
             self.loudness_info = info["loudness_info"]
 
             adjusted = self.reference_silence_adjusted()
-            short_text = " / 1秒未満警告あり" if quality["any_too_short"] else ""
+            short_text = " / warning: interval shorter than 1 s" if quality["any_too_short"] else ""
 
             self.silence_info_label.setText(
-                f"無音・閾値情報：閾値 {info['threshold']:.6f} / "
-                f"解析区間 {info['start_sec']}〜{info['end_sec']} 秒 / "
-                f"基準無音 前{quality['initial_duration']:.3f}秒・"
-                f"後{quality['final_duration']:.3f}秒 / "
-                f"修正 {adjusted}{short_text}"
+                f"Silence and threshold: threshold {info['threshold']:.6f} / "
+                f"analysis interval {info['start_sec']}–{info['end_sec']} s / "
+                f"reference silence pre {quality['initial_duration']:.3f} s / "
+                f"post {quality['final_duration']:.3f} s / "
+                f"adjusted {adjusted}{short_text}"
             )
 
             mean_pause = info["mean_pause_duration_sec"]
             mean_pause_text = (
-                f"{mean_pause} 秒" if np.isfinite(mean_pause) else "N/A（休止なし）"
+                f"{mean_pause} s" if np.isfinite(mean_pause) else "N/A (no pauses)"
             )
             self.additional_info_label.setText(
-                f"補助指標：onset {info['onset_latency_sec']} 秒 / "
-                f"speaking {info['total_speaking_sec']} 秒 / "
+                f"Speech behavior measures: onset {info['onset_latency_sec']} s / "
+                f"speaking {info['total_speaking_sec']} s / "
                 f"speech_ratio {info['speech_ratio']} / "
                 f"pause_count {info['pause_count']} / "
                 f"mean_pause {mean_pause_text}"
             )
 
             self.plot_all()
-            self.status_label.setText("状態：解析区間を自動推定しました")
+            self.status_label.setText("Status: Analysis interval estimated")
 
             if show_message:
                 QMessageBox.information(
                     self,
-                    "推定完了",
+                    "Estimation complete",
                     f"{info['message']}\n\n"
-                    f"自動推定開始秒: {info['start_sec']}\n"
-                    f"自動推定終了秒: {info['end_sec']}\n"
-                    f"発話開始候補: {info['speech_onset_candidate_sec']}\n"
-                    f"発話終了候補: {info['speech_offset_candidate_sec']}\n"
+                    f"Estimated analysis start: {info['start_sec']} s\n"
+                    f"Estimated analysis end: {info['end_sec']} s\n"
+                    f"Speech onset candidate: {info['speech_onset_candidate_sec']} s\n"
+                    f"Speech offset candidate: {info['speech_offset_candidate_sec']} s\n"
                     f"onset_latency_sec: {info['onset_latency_sec']}\n"
                     f"total_speaking_sec: {info['total_speaking_sec']}\n"
                     f"speech_ratio: {info['speech_ratio']}\n"
                     f"pause_count: {info['pause_count']}\n"
                     f"mean_pause_duration_sec: {mean_pause_text}\n"
-                    f"発話前基準無音長: {quality['initial_duration']} 秒\n"
-                    f"発話後基準無音長: {quality['final_duration']} 秒\n"
-                    f"基準無音区間を修正したか: {adjusted}\n"
-                    f"使用特徴量: {info['feature']}\n"
-                    f"loudness閾値: {info['threshold']:.6f}\n"
-                    f"閾値法: {THRESHOLD_METHOD}\n"
+                    f"Pre-speech reference silence duration: {quality['initial_duration']} s\n"
+                    f"Post-speech reference silence duration: {quality['final_duration']} s\n"
+                    f"Reference silence intervals adjusted: {adjusted}\n"
+                    f"Feature used: {info['feature']}\n"
+                    f"Loudness threshold: {info['threshold']:.6f}\n"
+                    f"Threshold method: {THRESHOLD_METHOD}\n"
                     f"openSMILE version: {self.opensmile_version}\n\n"
-                    "明らかな誤りがある場合のみ、発話前後の基準無音区間を"
-                    "修正して再推定してください。",
+                    "Only if the estimate is clearly incorrect, adjust the pre-speech and post-speech "
+                    "reference silence intervals and run the estimation again.",
                 )
 
         except Exception as e:
-            self.status_label.setText("状態：推定エラー")
+            self.status_label.setText("Status: Estimation error")
             self.plot_all()
             if show_message:
-                QMessageBox.critical(self, "エラー", str(e))
+                QMessageBox.critical(self, "Error", str(e))
             else:
                 raise
 
@@ -1177,9 +1177,9 @@ class App(QWidget):
             self.ensure_opensmile_ready()
             participant_id = self.id_input.text().strip()
             if not participant_id:
-                raise ValueError("Participant IDを入力してください。")
+                raise ValueError("Please enter a Participant ID.")
             if self.signal is None or self.sampling_rate is None:
-                raise ValueError("音声ファイルを選択してください。")
+                raise ValueError("Please select an audio file.")
 
             start_sec, end_sec = self.get_auto_segment_from_inputs()
             quality = self.get_reference_silence_quality()
@@ -1187,20 +1187,20 @@ class App(QWidget):
             if quality["any_too_short"]:
                 QMessageBox.warning(
                     self,
-                    "基準無音区間が短い状態で解析します",
-                    f"発話前：{quality['initial_duration']:.3f} 秒 / "
-                    f"発話後：{quality['final_duration']:.3f} 秒\n"
-                    "警告情報はCSVに保存されます。",
+                    "Analysis will proceed with a short reference silence interval",
+                    f"Pre-speech: {quality['initial_duration']:.3f} s / "
+                    f"Post-speech: {quality['final_duration']:.3f} s\n"
+                    "The warning information will be saved in the CSV output.",
                 )
 
-            self.status_label.setText("状態：音声区間を切り出し中...")
+            self.status_label.setText("Status: Extracting the analysis segment...")
             QApplication.processEvents()
 
             start_sample = int(start_sec * self.sampling_rate)
             end_sample = int(end_sec * self.sampling_rate)
             segment = self.signal[start_sample:end_sample]
             if len(segment) == 0:
-                raise ValueError("解析区間が空です。")
+                raise ValueError("The analysis segment is empty.")
 
             temp_dir = Path(tempfile.gettempdir()) / "egemaps_simple_analyzer"
             temp_dir.mkdir(parents=True, exist_ok=True)
@@ -1208,7 +1208,7 @@ class App(QWidget):
             sf.write(str(temp_wav), segment, self.sampling_rate, subtype="PCM_16")
 
             self.status_label.setText(
-                "状態：利用者が取得した公式openSMILE/eGeMAPSv02で解析中..."
+                "Status: Analyzing with the official openSMILE/eGeMAPSv02 obtained by the user..."
             )
             QApplication.processEvents()
 
@@ -1286,11 +1286,11 @@ class App(QWidget):
             self.result_df = df
             self.show_main_features(df)
             self.plot_all()
-            self.status_label.setText("状態：解析完了")
+            self.status_label.setText("Status: Analysis complete")
 
         except Exception as e:
-            QMessageBox.critical(self, "エラー", str(e))
-            self.status_label.setText("状態：エラー")
+            QMessageBox.critical(self, "Error", str(e))
+            self.status_label.setText("Status: Error")
 
     def show_main_features(self, df):
         self.table.setRowCount(len(MAIN_FEATURES))
@@ -1305,21 +1305,21 @@ class App(QWidget):
 
     def save_csv(self):
         if self.result_df is None:
-            QMessageBox.warning(self, "注意", "先に解析してください。")
+            QMessageBox.warning(self, "Warning", "Please run the analysis first.")
             return
 
         participant_id = self.id_input.text().strip() or "unknown"
         default_name = f"{participant_id}_egemaps_result.csv"
         save_path, _ = QFileDialog.getSaveFileName(
             self,
-            "CSV保存",
+            "Save CSV",
             default_name,
             "CSV Files (*.csv)",
         )
 
         if save_path:
             self.result_df.to_csv(save_path, index=False, encoding="utf-8-sig")
-            QMessageBox.information(self, "保存完了", "CSVを保存しました。")
+            QMessageBox.information(self, "Save complete", "The CSV file has been saved.")
 
 
 if __name__ == "__main__":
