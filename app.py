@@ -21,7 +21,7 @@ from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 
 
-APP_VERSION = "1.7.0"
+APP_VERSION = "1.0.0"
 
 MAIN_FEATURES = [
     "F0semitoneFrom27.5Hz_sma3nz_pctlrange0-2",
