@@ -1,4 +1,4 @@
-﻿eGeMAPS Simple Analyzer v1.0.0
+eGeMAPS Simple Analyzer v1.0.1
 README (Windows)
 
 1. About This Software
