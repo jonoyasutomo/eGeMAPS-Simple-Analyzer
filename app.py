@@ -21,7 +21,8 @@ from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 
 
-APP_VERSION = "1.0.1"
+APP_NAME = "Speech Feature Analyzer for eGeMAPSv02"
+APP_VERSION = "1.1.0"
 
 MAIN_FEATURES = [
     "F0semitoneFrom27.5Hz_sma3nz_pctlrange0-2",
@@ -46,6 +47,7 @@ def get_app_dir():
 
 
 def get_settings_path():
+    # Legacy folder name retained for backward compatibility with v1.0.x.
     base = Path(os.getenv("APPDATA", Path.home())) / "eGeMAPS_Simple_Analyzer"
     base.mkdir(parents=True, exist_ok=True)
     return base / "settings.json"
@@ -122,10 +124,6 @@ def convert_audio_to_analysis_wav(input_path):
     return {
         "converted_wav_path": str(output_wav),
         "input_format": input_path.suffix.lower().replace(".", ""),
-        "source_frame_rate_hz": np.nan,
-        "source_channels": np.nan,
-        "source_sample_width_bytes": np.nan,
-        "source_duration_sec": np.nan,
         "converted_channels": 1,
         "converted_sample_width_bytes": 2,
         "converted_sampling_rate_hz": info.samplerate,
@@ -578,7 +576,7 @@ class App(QWidget):
     def __init__(self):
         super().__init__()
 
-        self.setWindowTitle(f"eGeMAPS Simple Analyzer v{APP_VERSION}")
+        self.setWindowTitle(f"{APP_NAME} v{APP_VERSION}")
         self.resize(1080, 960)
 
         self.original_file_path = None
@@ -622,7 +620,7 @@ class App(QWidget):
 
         layout = QVBoxLayout()
 
-        title = QLabel(f"eGeMAPS Simple Analyzer v{APP_VERSION}")
+        title = QLabel(f"{APP_NAME} v{APP_VERSION}")
         layout.addWidget(title)
 
         opensmile_layout = QHBoxLayout()
@@ -1229,10 +1227,6 @@ class App(QWidget):
                 ("original_file", Path(self.original_file_path).name),
                 ("input_format", self.convert_info.get("input_format", "")),
                 ("converted_to_wav", self.convert_info.get("converted_to_wav", "yes")),
-                ("source_frame_rate_hz", self.convert_info.get("source_frame_rate_hz", np.nan)),
-                ("source_channels", self.convert_info.get("source_channels", np.nan)),
-                ("source_sample_width_bytes", self.convert_info.get("source_sample_width_bytes", np.nan)),
-                ("source_duration_sec", self.convert_info.get("source_duration_sec", np.nan)),
                 ("sampling_rate_hz", self.sampling_rate),
                 ("audio_total_duration_sec", round(self.total_duration, 3)),
                 ("auto_trim_start_sec", start_sec),

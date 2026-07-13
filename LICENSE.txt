@@ -1,6 +1,6 @@
-﻿MIT License
+MIT License
 
-Copyright (c) 2026 eGeMAPS Simple Analyzer contributors
+Copyright (c) 2026 Speech Feature Analyzer for eGeMAPSv02 contributors
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -23,8 +23,8 @@ THE SOFTWARE.
 
 Third-party software notice
 ---------------------------
-This license applies only to eGeMAPS Simple Analyzer and its original source
-code and documentation.
+This license applies only to Speech Feature Analyzer for eGeMAPSv02 and its
+original source code and documentation.
 
 openSMILE is not included in this distribution and is not covered by this
 MIT License. Users must obtain openSMILE separately from its official
@@ -36,7 +36,7 @@ https://github.com/audeering/opensmile/releases
 Official openSMILE licensing information:
 https://audeering.github.io/opensmile/about.html
 
-FFmpeg or imageio-ffmpeg components used for audio conversion are also
+FFmpeg and imageio-ffmpeg components used for audio conversion are also
 third-party software and remain subject to their respective licenses.
 Nothing in this license grants rights to third-party software beyond the
 rights provided by the respective copyright holders.
